@@ -1,8 +1,19 @@
 {
   "name": "np-js.pdf",
-  "version": "1.0.1",
+  "version": "1.0.01",
   "description": "An npm package to make a fast js-pdf ",
-  "keywords": [],
+  "keywords": [
+    "js-pdf",
+    "jspdf",
+    "pdf",
+    "pdf-generator",
+    "pdf-maker",
+    "fast-pdf-maker",
+    "nodejs-pdf",
+    "autotable",
+    "auto-cell-marged",
+    "table-pdf"
+  ],
   "homepage": "https://github.com/nevilctasisllp-cmd/fast-pdf-maker#readme",
   "bugs": {
     "url": "https://github.com/nevilctasisllp-cmd/fast-pdf-maker/issues"
