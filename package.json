@@ -1,0 +1,28 @@
+{
+  "name": "np-jspdf",
+  "version": "1.0.0",
+  "description": "An npm package to make a fast js-pdf ",
+  "keywords": [],
+  "homepage": "https://github.com/nevilctasisllp-cmd/fast-pdf-maker#readme",
+  "bugs": {
+    "url": "https://github.com/nevilctasisllp-cmd/fast-pdf-maker/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nevilctasisllp-cmd/fast-pdf-maker.git"
+  },
+  "license": "Apache-2.0",
+  "author": "np",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.5.25"
+  },
+  "devDependencies": {}
+}
