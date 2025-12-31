@@ -1,9 +1,12 @@
 const StudentReportService = require("../services/pdf/student-report.service");
-const { logError } = require("../utils/logger");
 
 exports.generateStudentReport = (req, res) => {
   try {
-    const pdfBuffer = StudentReportService.generate(req.body);
+    const { data, groupKeys } = req.body;
+
+    const pdfBuffer = StudentReportService.generate(data, {
+      groupKeys
+    });
 
     res.set({
       "Content-Type": "application/pdf",
@@ -18,9 +21,16 @@ exports.generateStudentReport = (req, res) => {
     });
   }
 };
+
+
 exports.downloadStudentReport = (req, res) => {
   try {
-    const pdfBuffer = StudentReportService.generate(req.body);
+    const { data , groupKeys , includeFirstColumn } = req.body;
+
+    const pdfBuffer = StudentReportService.generate(data, {
+      groupKeys,
+      includeFirstColumn: true  
+    });
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
@@ -28,9 +38,8 @@ exports.downloadStudentReport = (req, res) => {
       "attachment; filename=student-report.pdf"
     );
 
-    res.end(pdfBuffer);
+    res.send(pdfBuffer);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
