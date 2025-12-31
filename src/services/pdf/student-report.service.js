@@ -2,11 +2,19 @@ const { jsPDF } = require("jspdf");
 require("jspdf-autotable");
 
 class StudentReportService {
-  static generate(data) {
-    if (!Array.isArray(data) || data.length === 0) {
-      throw new Error("Invalid data: Data must be a non-empty array");
+  /**
+   * Generate grouped PDF with rowspan support
+   * @param {Array<Object>} data - Table data
+   * @param {Object} options
+   * @param {Array<string>} options.groupKeys - Columns to group by
+   */
+  static generate(data, options = {}) {
+    // Validate input
+    if (!Array.isArray(data) || !data.length) {
+      throw new Error("Invalid data");
     }
 
+    const { groupKeys = [] } = options;
     const doc = new jsPDF();
 
     /* ================= HEADER ================= */
@@ -18,156 +26,102 @@ class StudentReportService {
     doc.setFont("helvetica", "normal");
     doc.text("Dynamic Grouped Report", 105, 22, { align: "center" });
 
-    doc.setDrawColor(22, 160, 133);
-    doc.setLineWidth(0.5);
     doc.line(14, 26, 196, 26);
 
-    /* ================= AUTO DETECT COLUMNS ================= */
-    const columnsSet = new Set();
-    data.forEach((row) => {
-      if (row && typeof row === "object") {
-        Object.keys(row).forEach((key) => columnsSet.add(key));
+    /* ================= COLUMNS ================= */
+    // Detect all unique columns from data
+    const columns = [...new Set(data.flatMap(o => Object.keys(o)))];
+
+    // Valid group columns
+    const groups = groupKeys.filter(k => columns.includes(k));
+
+    // Non-group columns
+    const normals = columns.filter(c => !groups.includes(c));
+
+    /* ================= SORT DATA ================= */
+    // Sorting is required for rowspan logic
+    const sorted = [...data].sort((a, b) => {
+      for (const g of groups) {
+        const diff = String(a[g] ?? "").localeCompare(String(b[g] ?? ""));
+        if (diff !== 0) return diff;
       }
+      return 0;
     });
 
-    const columns = Array.from(columnsSet);
+    /* ================= HELPER FUNCTIONS ================= */
 
-    if (columns.length === 0) {
-      throw new Error("No columns found in data");
-    }
-
-    /* ================= IDENTIFY GROUP KEY ================= */
-    // First column is the grouping key
-    const groupKey = columns[0];
-    const otherColumns = columns.slice(1);
-
-    /* ================= SORT DATA BY GROUP KEY ================= */
-    const sortedData = [...data].sort((a, b) => {
-      const aVal = a[groupKey] ?? "";
-      const bVal = b[groupKey] ?? "";
-      return String(aVal).localeCompare(String(bVal));
-    });
-
-    /* ================= GROUP DATA ================= */
-    const grouped = {};
-    sortedData.forEach((row) => {
-      const groupValue = row[groupKey] ?? "";
-      if (!grouped[groupValue]) {
-        grouped[groupValue] = [];
+    // Check if two rows are same up to group index
+    const sameUpto = (a, b, idx) => {
+      for (let i = 0; i <= idx; i++) {
+        if (a[groups[i]] !== b[groups[i]]) return false;
       }
-      grouped[groupValue].push(row);
-    });
+      return true;
+    };
 
-    /* ================= BUILD TABLE DATA ================= */
-    const tableData = [];
+    // Calculate rowspan for a grouped cell
+    const calcSpan = (start, idx) => {
+      let span = 1;
+      for (let i = start + 1; i < sorted.length; i++) {
+        if (!sameUpto(sorted[start], sorted[i], idx)) break;
+        span++;
+      }
+      return span;
+    };
 
-    Object.entries(grouped).forEach(([groupValue, rows]) => {
-      rows.forEach((row, index) => {
-        const tableRow = [];
+    /* ================= BUILD TABLE BODY ================= */
+    const body = [];
 
-        // First column with rowspan
-        if (index === 0) {
+    sorted.forEach((row, rowIndex) => {
+      const tableRow = [];
+
+      // Add grouped columns with rowspan
+      groups.forEach((key, keyIndex) => {
+        const isFirstRow =
+          rowIndex === 0 ||
+          !sameUpto(sorted[rowIndex], sorted[rowIndex - 1], keyIndex);
+
+        if (isFirstRow) {
           tableRow.push({
-            content: String(groupValue),
-            rowSpan: rows.length,
+            content: String(row[key] ?? ""),
+            rowSpan: calcSpan(rowIndex, keyIndex),
             styles: {
-              valign: "middle",
               halign: "center",
-              fontStyle: "bold",
-              fillColor: [240, 248, 255],
-            },
+              valign: "middle",
+              fontStyle: "bold"
+            }
           });
         }
-
-        // Other columns
-        otherColumns.forEach((col) => {
-          const value = row[col];
-          tableRow.push(
-            value !== undefined && value !== null ? String(value) : ""
-          );
-        });
-
-        // Only add row if it's the first of the group OR if it has data
-        if (index === 0 || tableRow.slice(1).some((cell) => cell !== "")) {
-          tableData.push(tableRow);
-        }
       });
+
+      // Add normal columns
+      normals.forEach(col => {
+        tableRow.push(row[col] != null ? String(row[col]) : "");
+      });
+
+      body.push(tableRow);
     });
 
     /* ================= GENERATE TABLE ================= */
     doc.autoTable({
       startY: 32,
-      head: [columns.map((col) => col.toUpperCase())],
-      body: tableData,
+      head: [[...groups, ...normals].map(h => h.toUpperCase())],
+      body,
       theme: "grid",
       styles: {
         fontSize: 10,
-        cellPadding: 5,
-        halign: "center",
-        valign: "middle",
-        lineColor: [200, 200, 200],
-        lineWidth: 0.1,
+        halign: "center"
       },
       headStyles: {
-        fillColor: [22, 160, 133],
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-        halign: "center",
-        fontSize: 11,
+        fontStyle: "bold"
       },
-      bodyStyles: {
-        textColor: [50, 50, 50],
-      },
-      alternateRowStyles: {
-        fillColor: [249, 249, 249],
-      },
-      columnStyles: {
-        0: {
-          cellWidth: 40,
-          fontStyle: "bold",
-        },
-      },
-      margin: { left: 14, right: 14 },
-      didDrawPage: (data) => {
-        // Footer
-        doc.setFontSize(9);
-        doc.setTextColor(100);
-        doc.text(
-          `Generated on: ${new Date().toLocaleDateString("en-IN", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}`,
-          14,
-          doc.internal.pageSize.height - 10
-        );
-
-        // Page numbers
-        const pageCount = doc.internal.getNumberOfPages();
-        doc.text(
-          `Page ${data.pageNumber} of ${pageCount}`,
-          doc.internal.pageSize.width - 40,
-          doc.internal.pageSize.height - 10
-        );
-      },
+      margin: {
+        left: 14,
+        right: 14
+      }
     });
 
+    // Return PDF buffer
     return Buffer.from(doc.output("arraybuffer"));
-  }
-
-  // Helper method to generate from file path
-  static generateFromFile(filePath) {
-    const fs = require("fs");
-    const data = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-    return this.generate(data);
-  }
-
-  // Helper method to save PDF
-  static saveToFile(data, outputPath) {
-    const fs = require("fs");
-    const pdfBuffer = this.generate(data);
-    fs.writeFileSync(outputPath, pdfBuffer);
-    return outputPath;
   }
 }
 

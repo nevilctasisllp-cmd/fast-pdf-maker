@@ -55,6 +55,18 @@ Margin/padding applied for visual clarity
 
 ✅ Works with any API / Postman data
 
+- Group data by multiple keys (Department, Year, Name, etc.)
+
+- Automatically merge rows (rowSpan) for grouped columns
+
+- Prevents duplicate group values in table body
+
+- Fully dynamic table structure
+
+- Supports download & inline PDF response
+
+- Easy to integrate into existing Node/Express projects
+
 🧠 How It Works (Concept)
 
 Accepts any JSON array
@@ -76,13 +88,16 @@ Generates a clean PDF table
 Returns a PDF Buffer (ready for API response or file save)
 
 📥 Example Input Data (Postman / API)
-[
-{ "name": "Rahul", "subject": "Maths", "marks": 85, "grade": "A" },
-{ "name": "Rahul", "subject": "Maths", "marks": 85, "grade": "A" },
-{ "name": "Rahul", "subject": "Science", "marks": 78, "grade": "B" },
-{ "name": "Ankit", "subject": "Maths", "marks": 92, "grade": "A+" }
+{
+"groupKeys": ["Department", "Year", "Name"],
+"data": [
+{ "Department": "Sales", "Year": "2024", "Name": "Amit", "Subject": "Eng", "Marks": 80 },
+{ "Department": "Sales", "Year": "2024", "Name": "Amit", "Subject": "Hindi", "Marks": 85 },
+{ "Department": "Sales", "Year": "2025", "Name": "Kunal", "Subject": "Eng", "Marks": 78 },
+{ "Department": "HR", "Year": "2024", "Name": "Neha", "Subject": "Gujarati", "Marks": 92 },
+{ "Department": "HR", "Year": "2024", "Name": "Neha", "Subject": "Hindi", "Marks": 88 }
 ]
-
+}
 ⚙️ Key Design Decisions
 
 No hardcoded columns
@@ -116,10 +131,52 @@ Purpose: Reusable, scalable, dynamic PDF reporting solution
 const StudentReportService = require("dynamic-grouped-pdf-report");
 
 ⚡ Quick Usage
-const data = [
-{ name: "Rahul", subject: "Maths", marks: 85, grade: "A" },
-{ name: "Rahul", subject: "Science", marks: 78, grade: "B" },
-{ name: "Ankit", subject: "Maths", marks: 92, grade: "A+" }
-];
+const data = {
+"groupKeys": ["Department", "Year", "Name"],
+"data": [
+{ "Department": "Sales", "Year": "2024", "Name": "Amit", "Subject": "Eng", "Marks": 80 },
+{ "Department": "Sales", "Year": "2024", "Name": "Amit", "Subject": "Hindi", "Marks": 85 },
+{ "Department": "Sales", "Year": "2025", "Name": "Kunal", "Subject": "Eng", "Marks": 78 },
+{ "Department": "HR", "Year": "2024", "Name": "Neha", "Subject": "Gujarati", "Marks": 92 },
+{ "Department": "HR", "Year": "2024", "Name": "Neha", "Subject": "Hindi", "Marks": 88 }
+]
+}
 
 StudentReportService.saveToFile(data, "report.pdf");
+
+📊 Output Behavior
+
+Group columns are merged vertically
+
+No duplicate Department / Year / Name in rows
+
+Clean professional PDF layout
+
+Auto-generated headers and footer
+
+⚙️ Tech Stack
+
+Node.js
+
+jsPDF
+
+jspdf-autotable
+
+Express (optional)
+
+- 🧪 Testing with Postman
+
+* Method: POST
+
+* URL: http://localhost:3000/report/pdf
+
+* Headers:
+
+Content-Type: application/json
+
+Body: (raw → JSON)
+
+{
+"groupKeys": ["Department", "Year", "Name"],
+"data": [ ... ]
+}
